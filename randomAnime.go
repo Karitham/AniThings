@@ -15,28 +15,28 @@ import (
 
 func main() {
 	// Introduce the program
-	fmt.Print("Hello, this is a small tool to get random anime from anilist\nPlease enter the number of anime you want to get :\n>")
+	fmt.Print("Hello, this is a small tool to get random anime from anilist\nPlease enter the number of anime you want to get :\n> ")
 
 	// Read event
 	bytes, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 	if err != nil {
-		fmt.Println("there was an error reading your input", err)
+		fmt.Println("There was an error reading your input : ", err)
 	}
 
 	// Parse input
 	number, err := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(string(bytes), "\n"), "\r")))
-	if err != nil {
-		fmt.Println("Verify if your input is a number", err)
+	if err != nil || number == 0 {
+		fmt.Printf("There was an error : %s\nVerify that your input is a number\n", err)
 	}
 
 	// Run queries
-	for i := 0; i <= number; i++ {
+	for i := 0; i < number; i++ {
+		fmt.Println(returnURL())
 		time.Sleep(750 * time.Millisecond)
-		go fmt.Println(returnURL())
 	}
 
 	// Don't let the program stop
-	fmt.Print("Press 'Enter' to quit the program ...")
+	fmt.Print("\nPress 'Enter' to quit the program ...")
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
@@ -69,6 +69,6 @@ func returnURL() string {
 		fmt.Println("there was an error while getting random anime :", err)
 	}
 
-	// Print resulting URL
+	// return URL
 	return randomAnime.Page.Media[0].SiteURL
 }
