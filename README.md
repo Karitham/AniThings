@@ -1,11 +1,9 @@
-# RandomAnilistAnime
+# Small Anilist things
 
-Is used to query a random anime from anilist and outputs the URL.
+## LikeSpam
 
-You can also simply use a release provided in the release tab.
+This is just something to spam like someone, read the [readme](LikeSpam/README.md) to understand how it works
 
-## Compile yourself
+## RandomAnime
 
-To compile for youself, you need the [go compiler](https://github.com/golang/go)
-
-Then you can just run `go build .` in the repo
+Use this to get random animes, read the [readme](RandomAnime/README.md)
