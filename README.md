@@ -2,10 +2,10 @@
 
 A set of random anilist things written in go
 
-## LikeSpam
+### [LikeSpam](LikeSpam/README.md)
 
-This is just something to spam like someone, read the [readme](LikeSpam/README.md) to understand how it works
+Spam a user with likes
 
-## RandomAnime
+### [RandomAnime](RandomAnime/README.md)
 
-Use this to get random animes, read the [readme](RandomAnime/README.md)
+Give you random anilist anime links
