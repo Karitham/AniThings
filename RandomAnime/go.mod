@@ -1,4 +1,4 @@
-module test1
+module github.com/Karitham/AniThings/RandomAnime
 
 go 1.14
 

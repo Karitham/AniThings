@@ -2,7 +2,9 @@
 
 Is used to query a random anime from anilist and outputs the URL.
 
-You can also simply use a release provided in the release tab.
+## Usage
+
+`RandomAnime --count n` will give you `n` number of random animes
 
 ## Compile yourself
 
