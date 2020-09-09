@@ -1,4 +1,6 @@
-# Small Anilist things
+# Anithings
+
+A set of random anilist things written in go
 
 ## LikeSpam
 
