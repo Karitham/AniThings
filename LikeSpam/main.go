@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"time"
 
@@ -42,6 +41,7 @@ func main() {
 	goterm.Flush()
 	f.runLiker()
 }
+
 func getFlags() (f Flags) {
 	flag.IntVar(
 		&f.count,
@@ -61,36 +61,44 @@ func getFlags() (f Flags) {
 		"",
 		"Enter your anilist token, to get one, go to https://anilist.co/api/v2/oauth/authorize?client_id=3971&response_type=token",
 	)
+
 	flag.Parse()
+
 	if f.token == "" || f.username == "" {
 		log.Fatalln("error starting the liker, you need to provide the flags. Check `-help` for help")
 	}
+
 	f.getUserID()
+
 	return f
 }
 
 func (f *Flags) runLiker() {
 	var page, likes int
-	for likes < f.count {
+
+	for likes <= f.count {
 		a := f.queryActivities(page)
 		for i := 0; i < len(a.Page.Activities); i++ {
 			if !a.Page.Activities[i].IsLiked {
-				time.Sleep(2750 * time.Millisecond)
-				a.Page.Activities[i].like(f.token)
+				err := a.Page.Activities[i].like(f.token)
+				if err != nil {
+					time.Sleep(time.Minute)
+				}
 				likes++
-				fmt.Printf("\rLiked %d activities from %s", likes, f.username)
+				log.Printf("\rLiked %d activities from %s", likes, f.username)
 			}
 		}
-		time.Sleep(time.Second)
 		page++
 	}
 }
+
 func (f *Flags) getUserID() {
 	var userID struct {
 		User struct {
 			ID int `json:"id"`
 		} `json:"User"`
 	}
+
 	req := graphql.NewRequest(`
 	query ($name: String) {
 		  User(search: $name) {
@@ -104,10 +112,11 @@ func (f *Flags) getUserID() {
 	if err != nil {
 		log.Fatalln("error retrieving user ID : ", err)
 	}
+
 	f.userID = userID.User.ID
 }
 
-func (a *Activity) like(token string) {
+func (a *Activity) like(token string) (err error) {
 	req := graphql.NewRequest(`
 	mutation ($id: Int) {
 		ToggleLikeV2(id: $id, type: ACTIVITY) {
@@ -118,10 +127,8 @@ func (a *Activity) like(token string) {
 	req.Header.Add("Authorization", "Bearer "+token)
 	req.Var("id", a.ID)
 
-	err := c.Run(context.Background(), req, nil)
-	if err != nil {
-		log.Println("Error linking activity : ", err)
-	}
+	err = c.Run(context.Background(), req, nil)
+	return err
 }
 
 func (f Flags) queryActivities(page int) (Activities ActivitiesQueryStruct) {
