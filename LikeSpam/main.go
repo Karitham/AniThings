@@ -2,130 +2,158 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"flag"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"time"
 
+	"github.com/buger/goterm"
 	"github.com/machinebox/graphql"
 )
 
-var config struct {
-	GqlURL string `json:"URL"`
-	Token  string `json:"Token"`
-	User   string `json:"Username"`
+// Flags are the different flags you can pass to the program
+type Flags struct {
+	count    int
+	token    string
+	username string
+	userID   int
 }
 
-// ActivityListStruct represent the data returned to get activity query
-type ActivityListStruct struct {
+// ActivitiesQueryStruct is used to query activities
+type ActivitiesQueryStruct struct {
 	Page struct {
-		Activities []struct {
-			ID   int    `json:"id"`
-			Type string `json:"type"`
-		} `json:"activities"`
+		Activities []Activity `json:"activities"`
 	} `json:"Page"`
 }
 
-var c *graphql.Client
+// Activity represent an activity node
+type Activity struct {
+	Typename string `json:"__typename"`
+	ID       int    `json:"id"`
+	IsLiked  bool   `json:"isLiked"`
+}
+
+var c *graphql.Client = graphql.NewClient("https://graphql.anilist.co")
 
 func main() {
-	// Set config and client
-	getToken("settings.json")
-	c = graphql.NewClient(config.GqlURL)
-
-	// Run infinite like
-	infiniteLike(config.User)
+	f := getFlags()
+	goterm.Clear()
+	goterm.MoveCursor(1, 1)
+	goterm.Flush()
+	f.runLiker()
+}
+func getFlags() (f Flags) {
+	flag.IntVar(
+		&f.count,
+		"count",
+		0,
+		"use count to specify a like count",
+	)
+	flag.StringVar(
+		&f.username,
+		"user",
+		"",
+		"Use user to set the name of the user to spam",
+	)
+	flag.StringVar(
+		&f.token,
+		"token",
+		"",
+		"Enter your anilist token, to get one, go to https://anilist.co/api/v2/oauth/authorize?client_id=3971&response_type=token",
+	)
+	flag.Parse()
+	if f.token == "" || f.username == "" {
+		log.Fatalln("error starting the liker, you need to provide the flags. Check `-help` for help")
+	}
+	f.getUserID()
+	return f
 }
 
-func infiniteLike(user string) {
-	var page int
-
-	userID, _ := getUserID(user)
-	for true {
-		activities, err := queryActivities(userID, page, 50)
-
-		if err != nil {
-			fmt.Println("Error getting activities : ", err)
+func (f *Flags) runLiker() {
+	var page, likes int
+	for likes < f.count {
+		a := f.queryActivities(page)
+		for i := 0; i < len(a.Page.Activities); i++ {
+			if !a.Page.Activities[i].IsLiked {
+				time.Sleep(2750 * time.Millisecond)
+				a.Page.Activities[i].like(f.token)
+				likes++
+				fmt.Printf("\rLiked %d activities from %s", likes, f.username)
+			}
 		}
-
-		for i := 0; i < 50; i++ {
-			time.Sleep(750 * time.Millisecond)
-			likeActivity(activities.Page.Activities[i].ID)
-		}
-		page++
-		fmt.Println("I just liked 50 activities from", user)
 		time.Sleep(time.Second)
+		page++
 	}
 }
-
-func getUserID(name string) (userID int, err error) {
-	var userIDStruct struct {
+func (f *Flags) getUserID() {
+	var userID struct {
 		User struct {
 			ID int `json:"id"`
 		} `json:"User"`
 	}
-
 	req := graphql.NewRequest(`
-		query ($name: String) {
-			User(name: $name) {
-				id
-			}
-			}`)
-	req.Var("name", name)
-	err = c.Run(context.Background(), req, &userIDStruct)
-	return userIDStruct.User.ID, err
-}
-
-func likeActivity(id int) (userList interface{}, err error) {
-	req := graphql.NewRequest(`
-			mutation ($id: Int) {
-		ToggleLike(id: $id, type:ACTIVITY) {
-			name
+	query ($name: String) {
+		  User(search: $name) {
+			id
 		}
-		}`)
-	req.Header.Add("Authorization", "Bearer "+config.Token)
-	req.Var("id", id)
-	err = c.Run(context.Background(), req, &userList)
-	return
-}
+	  }`)
 
-// get config from file
-func getToken(file string) {
-	body, err := ioutil.ReadFile(file)
+	req.Var("name", f.username)
+
+	err := c.Run(context.Background(), req, &userID)
 	if err != nil {
-		fmt.Println("error reading config file :", err)
+		log.Fatalln("error retrieving user ID : ", err)
 	}
-	er := json.Unmarshal(body, &config)
-	if er != nil {
-		fmt.Println("error unmarshalling config :", er)
+	f.userID = userID.User.ID
+}
+
+func (a *Activity) like(token string) {
+	req := graphql.NewRequest(`
+	mutation ($id: Int) {
+		ToggleLikeV2(id: $id, type: ACTIVITY) {
+		  __typename
+		}
+	  }`)
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	req.Var("id", a.ID)
+
+	err := c.Run(context.Background(), req, nil)
+	if err != nil {
+		log.Println("Error linking activity : ", err)
 	}
 }
 
-func queryActivities(userID int, page int, count int) (Activities *ActivityListStruct, err error) {
+func (f Flags) queryActivities(page int) (Activities ActivitiesQueryStruct) {
 	req := graphql.NewRequest(`
-	query ($userId: Int, $page: Int, $count: Int) {
-		Page(page: $page, perPage: $count) {
+	query ($userId: Int, $page: Int) {
+		Page(page: $page, perPage: 50) {
 		  activities(sort: ID_DESC, userId: $userId) {
+			__typename
 			... on TextActivity {
 			  id
-			  type
+			  isLiked
 			}
 			... on ListActivity {
 			  id
-			  type
+			  isLiked
 			}
 			... on MessageActivity {
 			  id
-			  type
+			  isLiked
 			}
 		  }
 		}
-	  }
-	`)
-	req.Header.Add("Authorization", "Bearer "+config.Token)
-	req.Var("userId", userID)
+	  }`)
+
+	req.Var("userId", f.userID)
 	req.Var("page", page)
-	req.Var("count", count)
-	err = c.Run(context.Background(), req, &Activities)
+	req.Header.Set("Authorization", "Bearer "+f.token)
+
+	err := c.Run(context.Background(), req, &Activities)
+	if err != nil {
+		log.Println("Error getting activities : ", err)
+	}
+
 	return
 }
