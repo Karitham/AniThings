@@ -1,3 +1,5 @@
+github.com/Karitham/progressbar v0.0.0-20200912141943-bb0bf91ca84c h1:IOCZVE1Ydr/3Z8JK1/bof8tiSkE0HzeazX0oVe41k80=
+github.com/Karitham/progressbar v0.0.0-20200912141943-bb0bf91ca84c/go.mod h1:XAbMGzUvdJ1WaDZJQ9gLJxO3TYgO2tkSp4HGNn2vrII=
 github.com/buger/goterm v0.0.0-20200322175922-2f3e71b85129 h1:gfAMKE626QEuKG3si0pdTRcr/YEbBoxY+3GOH3gWvl4=
 github.com/buger/goterm v0.0.0-20200322175922-2f3e71b85129/go.mod h1:u9UyCz2eTrSGy6fbupqJ54eY5c4IC8gREQ1053dK12U=
 github.com/machinebox/graphql v0.2.2 h1:dWKpJligYKhYKO5A2gvNhkJdQMNZeChZYyBbrZkBZfo=

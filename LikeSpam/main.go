@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -75,20 +76,25 @@ func getFlags() (f Flags) {
 
 func (f *Flags) runLiker() {
 	var page, likes int
-
-	for likes <= f.count {
+	for likes < f.count {
 		a := f.queryActivities(page)
-		for i := 0; i < len(a.Page.Activities); i++ {
-			if !a.Page.Activities[i].IsLiked {
-				err := a.Page.Activities[i].like(f.token)
-				if err != nil {
-					time.Sleep(time.Minute)
-				}
-				likes++
-				log.Printf("\rLiked %d activities from %s", likes, f.username)
-			}
+		if len(a.Page.Activities) == 0 {
+			log.Printf("You have liked all of %s's activities", f.username)
+			break
 		}
-		page++
+		for i := 0; i < len(a.Page.Activities) && likes < f.count; i++ {
+			if a.Page.Activities[i].IsLiked {
+				continue
+			}
+		here:
+			err := a.Page.Activities[i].like(f.token)
+			if err != nil {
+				time.Sleep(time.Minute)
+				goto here
+			}
+			likes++
+			fmt.Printf("\rLiked %d activities of %s", likes, f.username)
+		}
 	}
 }
 
